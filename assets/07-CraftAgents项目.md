@@ -1,0 +1,29 @@
+# 项目三：Craft Agents — 高阶Agent架构与多端工程化平台
+
+## 项目概述
+Craft Agents是面向知识工作者的Agent Native桌面平台。它支持多LLM Provider（Claude、GPT-4o、Gemini、Copilot）、MCP工具协议、多会话并行编排和事件驱动自动化。基于自研双后端架构和WebSocket RPC协议，实现从桌面端到远程无头服务器的统一Agent体验。
+
+技术栈是TypeScript、Bun、Electron、WebSocket、JSONL和MCP。
+
+## 核心设计一：双后端Agent抽象层
+多LLM Provider的SDK架构根本不同——Claude SDK是进程内调用，Pi SDK是子进程JSONL通信。为了解决这个异构问题，我设计了BaseAgent抽象类加AgentBackend接口，通过ClaudeEventAdapter和PiEventAdapter将两种SDK的异构事件流统一为18种AgentEvent类型。这样UI层完全不需要关心底层是哪个Provider，新增Provider只需实现一个EventAdapter和一组抽象方法。
+
+## 核心设计二：6步PreToolUse工具安全管线
+Agent工具调用可能带来越权操作、参数注入、副作用不可控的问题。我设计了6步有序拦截管线：权限模式检查、Source激活、前置条件验证、call_llm拦截、参数变换与校验、Ask模式审批。
+
+其中Bash命令通过AST分析器区分只读和写入操作，配置文件写入前模拟Edit替换结果预验证JSON格式，环境变量过滤阻止API Key泄露给子进程。这个管线有1244行测试覆盖，pipeline顺序经过严格验证。
+
+## 核心设计三：MCP Pool集中式工具代理与级联容错
+异构外部工具需要统一管理。我设计了McpClientPool集中式连接管理器，所有后端共享同一组MCP客户端连接，通过mcp加slug加toolName的代理命名实现运行时Source切换无需重启会话。
+
+Web Search实现了四级Provider级联回退：OpenAI回退到Gemini回退到ChatGPT回退到DuckDuckGo，DuckDuckGo内部还有三级端点降级加指数退避重试。超大工具返回通过模型感知token阈值自动保存到文件加mini model摘要，防止上下文窗口中毒。
+
+## 核心设计四：Session隔离加DAG编排的多Agent协作
+复杂任务超出单Agent上下文窗口和能力范围时怎么办？我设计了Session隔离加TaskRunner DAG编排模式。每个DAG节点自动成为独立子会话，拥有独立的上下文窗口、权限模式和Source集合。Conductor支持max_parallel默认4的并发调度，通过节点输出插值传递前置节点结果。所有节点完成后由Orchestrator会话进行LLM-as-judge审查，失败时带上下文重试，有max_iterations预算封顶。
+
+## 核心设计五：WebSocket RPC双模式部署
+桌面应用需要同时支持本地嵌入和远程无头两种部署模式。我设计了WebSocket RPC协议，实现per-client单调序列号的可靠交付、断线重连事件回放、客户端能力协商、可选TLS加bearer token认证。同一套代码既在Electron主进程中作为本地服务运行，也在Docker或VPS上作为独立服务器运行。
+
+
+## 你觉得Agent系统最重要的工程能力是什么？
+安全和可控。Agent有自主决策能力，这既是优势也是风险。安全管线、多层权限控制、审计日志，都是为了让Agent在做错事的时候能被拦截和回滚。一个不可控的Agent比没有Agent更危险。

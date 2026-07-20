@@ -1,0 +1,276 @@
+import { 
+  KnowledgeClient, 
+  Config, 
+  KnowledgeDocument, 
+  DataSourceType,
+  ChunkConfig 
+} from 'coze-coding-dev-sdk';
+
+const config = new Config();
+const client = new KnowledgeClient(config);
+
+// 知识库文档内容
+const documents: KnowledgeDocument[] = [
+  // 个人基本信息
+  {
+    source: DataSourceType.TEXT,
+    raw_data: `# 关于我的基本信息
+## 我是谁
+我叫司书晗，目前就读于武汉理工大学计算机技术专业，2025年入学，预计2028年毕业，是一名硕士研究生。
+
+## 我的研究方向
+我的研究方向是计算机视觉中的跨域物体检测，重点关注跨域场景下的半监督目标检测。具体来说，我研究如何让在一个域（比如光学图像）上训练的模型，能在另一个域（比如SAR雷达图像）上也有好的检测效果，而不需要大量标注数据。
+
+## 我的学术能力
+在学术研究方面，我具备较强的论文复现能力。我能快速阅读并还原论文核心实验流程，并在已有模型基础上设计和集成改进模块，比如注意力机制、特征融合策略等，来提升检测性能。我能独立完成从数据准备、模型训练、消融实验到论文图表生成的完整研究流程。
+
+## 我的日常开发习惯
+日常开发中我深度使用Claude Code进行AI辅助编程。我善于通过Prompt工程引导模型高效完成代码生成、调试与重构任务，这让我的开发效率有很大提升。
+
+## 我的求职方向
+我主要面向Agent开发工程师岗位求职，同时具备Java后端开发的能力。我对AI Agent架构有深入的理解和实践经验。
+
+## 如果面试官问：你为什么选择Agent方向？
+因为我在研究跨域检测的过程中，深入理解了Transformer和注意力机制的底层原理，这为我理解大模型打下了基础。同时我认为Agent是未来软件工程的重要范式，我希望在这个方向深耕。`
+  },
+
+  // Java后端技术
+  {
+    source: DataSourceType.TEXT,
+    raw_data: `# 我的Java后端技术栈
+## Spring Boot与框架
+我熟练使用Spring Boot构建RESTful服务。我理解Spring IOC和AOP的核心原理——IOC通过容器管理Bean的生命周期和依赖注入，AOP通过切面实现日志、事务、权限等横切关注点的解耦。我能基于注解和配置完成Bean生命周期管理与切面织入。
+
+关于Spring Cloud，我了解常见组件：Nacos作为注册中心和配置中心、Gateway作为API网关、OpenFeign做声明式服务调用。我有微服务拆分的基本实践经验，理解服务注册发现、配置管理、负载均衡等核心概念。
+
+## 消息队列RabbitMQ
+我熟悉RabbitMQ消息队列。我理解消息可靠投递的机制，包括publisher confirm机制确认消息到达Exchange，return机制处理无法路由的消息。在消费端，我了解幂等性设计——通过唯一消息ID或业务去重逻辑保证消息不被重复处理。
+
+## MySQL数据库
+我熟练使用MySQL。我能结合EXPLAIN命令分析慢查询，看type、key、rows、Extra等字段判断索引是否命中，然后进行索引优化和SQL改写。我理解InnoDB存储引擎的B+树索引结构，知道聚簇索引和非聚簇索引的区别，以及覆盖索引、最左前缀匹配等优化原则。
+
+## Redis缓存
+我熟悉Redis的常用数据结构及其业务应用场景：String用于计数和缓存、Hash用于对象存储、ZSet用于排行榜、Set用于去重和交并集运算、List用于消息队列。
+
+在实际项目中，我用Redis做过三件事：一是热点数据缓存，将高频查询结果存入Redis减少数据库压力；二是分布式锁，基于SETNX加Lua脚本保证原子性，防止并发问题；三是排行榜功能，利用ZSet的有序性实现实时排名。
+
+我了解缓存穿透（查不存在的数据）、缓存击穿（热点key过期瞬间大量请求）、缓存雪崩（大量key同时过期）的成因和解决方案，比如布隆过滤器、互斥锁、随机过期时间等。
+
+## 并发编程与JVM
+我熟悉JUC并发编程工具包。我理解synchronized和ReentrantLock的区别——synchronized是JVM层面的关键字，自动释放锁；ReentrantLock是API层面的锁，支持公平锁、可中断、超时等高级特性。
+
+我掌握线程池核心参数配置：corePoolSize（核心线程数）、maximumPoolSize（最大线程数）、keepAliveTime（空闲存活时间）和拒绝策略。我能根据任务类型合理配置——IO密集型任务配置较多线程（2N），CPU密集型任务配置较少线程（N+1）。
+
+我了解JVM内存模型：堆存放对象实例、栈存放方法调用和局部变量、方法区（元空间）存放类信息和常量。
+
+## 网络协议
+我熟悉TCP三次握手和四次挥手流程，理解可靠传输机制中的滑动窗口和拥塞控制（慢启动、拥塞避免、快重传、快恢复）。
+
+我理解HTTP/1.1与HTTP/2的核心差异：HTTP/2支持多路复用（一个TCP连接上并行多个请求）、头部压缩（HPACK算法）、服务端推送。
+
+我了解WebSocket协议在实时通信场景中的应用，比如即时聊天、实时数据推送等需要双向通信的场景。`
+  },
+
+  // Agent与大模型技术
+  {
+    source: DataSourceType.TEXT,
+    raw_data: `# 我的Agent与大模型技术栈
+## Transformer架构
+我掌握Transformer架构的核心机制。多头自注意力（Multi-Head Self-Attention）通过将Q、K、V投影到多个子空间，让模型同时关注不同位置的不同语义信息，最后拼接融合。位置编码（Positional Encoding）为序列中的每个位置注入位置信息，因为自注意力本身是排列不变的。残差连接和层归一化保证了深层网络的训练稳定性。
+
+## Agent框架与编排
+我熟悉LangChain和LangGraph两大主流Agent编排框架。
+
+在LangChain中，我熟练使用Chain（链式调用）、Agent（自主决策）、Tool（工具调用）、Memory（记忆管理）等核心抽象来构建应用链路。
+
+在LangGraph中，我能基于状态图（StateGraph）设计多节点、多分支的复杂工作流。StateGraph的核心思想是把Agent的执行过程建模为一个有向图，每个节点是一个处理步骤，边上可以设置条件路由。我支持条件路由（根据状态决定下一步走哪个节点）、人工介入节点（Human-in-the-loop，让 Agent在关键决策点暂停等待人类确认）和循环推理（Agent可以回到之前的节点重新推理）。
+
+我深入理解两种核心Agent范式。ReAct（Reasoning + Acting）的核心是Thought → Action → Observation循环：模型先推理（Thought）决定要做什么，然后执行动作（Action）调用工具，观察结果（Observation）后继续推理，直到任务完成。Reflexion范式更进一步，在每轮执行后加入自我反思（Reflection），Agent会评估自己的表现，把反思结论存入记忆，下一轮执行时参考，实现迭代改进。
+
+我还能根据业务需求设计Workflow工作流，把复杂任务拆解为确定性的节点编排，兼顾灵活性（Agent自主决策）和可控性（固定流程保证质量）。
+
+## RAG知识库
+我掌握RAG（检索增强生成）全链路技术。
+
+文档解析环节：我熟悉PDF、Word、Markdown等多种格式的解析与清洗策略，能把非结构化文档转化为可处理的文本。
+
+切分环节：我了解三种主要切分策略——固定长度切分（简单但可能切断语义）、语义切分（按段落或主题切分，保留语义完整性）、递归字符切分（按层级分隔符逐级切分，平衡粒度与完整性）。切分策略直接影响检索质量。
+
+向量存储环节：我有使用ChromaDB和FAISS进行向量索引和近似最近邻检索的经验。
+
+检索环节：我理解关键词检索（BM25）与向量语义检索的互补性——BM25擅长精确匹配专有名词，向量检索擅长语义相似度匹配。我能设计混合检索（Hybrid Search）策略，把两种检索结果融合，并配合重排序（Reranker）对候选结果重新打分，提升检索精度。
+
+## 工具调用与协议
+我掌握Function Calling的工作机制：通过JSON Schema定义工具的名称、描述和参数格式，模型在推理时自主选择调用哪个工具并生成参数，执行结果回注到上下文中供下一轮推理使用。
+
+我熟悉MCP（Model Context Protocol）协议规范。MCP是Agent与外部工具和数据源之间的标准化通信协议，它定义了工具发现、工具调用、资源访问等统一接口，让Agent可以即插即用地接入各种外部能力。
+
+我掌握Skill机制——将常见操作流程封装为可复用的技能包，比如文件操作、代码审查、文档生成等，Agent可以按需加载特定领域的最佳实践来执行任务。
+
+## 模型微调
+我了解SFT（监督微调）——用标注数据微调模型使其遵循特定指令；PPO（近端策略优化）——通过强化学习优化模型策略；RLHF（基于人类反馈的强化学习）——让人类标注员对模型输出排序，训练奖励模型，再用PPO优化。
+
+我对LoRA和QLoRA等参数高效微调方法也有了解——通过低秩矩阵分解只微调少量参数，大幅降低微调成本。
+
+## 如果面试官问：你怎么理解Agent和传统软件的区别？
+传统软件是确定性的——给定输入，执行固定逻辑，得到确定输出。Agent是概率性的——给定任务，模型自主推理决定执行步骤，调用工具获取外部信息，根据结果动态调整策略。这意味着Agent需要额外的工程机制来保证可靠性：权限审批防止越权操作、上下文管理防止信息过载、容错重试应对执行失败、会话持久化保证任务连续性。这些正是我在MiniCode和Craft Agents中实现的核心能力。`
+  },
+
+  // 计算机视觉研究
+  {
+    source: DataSourceType.TEXT,
+    raw_data: `# 我的计算机视觉研究
+## 研究方向
+我的研究方向是计算机视觉中的跨域物体检测，具体来说是跨域场景下的半监督目标检测。
+
+跨域检测的核心挑战是：在一个域（比如光学图像，也就是普通照片）上训练好的检测模型，直接用在另一个域（比如SAR合成孔径雷达图像）上时，效果会大幅下降，因为两个域的图像特征分布差异很大。
+
+## 我熟悉的技术框架
+我熟悉主流目标检测框架如MMDetection，能快速搭建和训练检测模型。
+
+我了解半监督学习和域自适应检测的基本范式，比如Mean Teacher（教师-学生模型，教师模型用学生模型的指数移动平均更新，用教师生成伪标签指导学生训练）和Dual Teacher（双教师模型，进一步提高伪标签质量）。
+
+## 我的实践经验
+我有使用CycleGAN进行光学-SAR图像风格迁移的实践经验。思路是先用CycleGAN把光学图像转换成类似SAR风格的图像，再用这些"伪SAR"图像辅助训练SAR域的检测模型，从而提升跨域检测性能。
+
+我能独立完成完整的研究流程：数据准备（收集、清洗、标注数据集）→ 模型训练（选择架构、调参、训练）→ 消融实验（逐一验证每个改进模块的贡献）→ 论文图表生成（可视化结果、对比实验图表）。
+
+## 如果面试官问：你的研究和Agent开发有什么关系？
+研究经历让我深入理解了Transformer和注意力机制的底层原理，这是理解大模型的基础。同时，研究需要的实验设计能力（控制变量、消融实验）和工程能力（数据处理、模型训练pipeline）也直接帮助我做好Agent系统的工程化工作。`
+  },
+
+  // 森林病虫害项目
+  {
+    source: DataSourceType.TEXT,
+    raw_data: `# 项目一：森林病虫害智能检测系统
+## 项目背景
+这是我导师与合作公司对接的横向课题，我作为唯一开发者，独立完成了整个系统的开发。
+
+## 项目目标
+为合作公司构建一套面向林业管理场景的病虫害智能检测与管理系统。用户（林业管理人员）上传无人机航拍或林间拍摄的图像，系统自动识别病虫害类型与严重程度，辅助防治决策。
+
+## 我的技术方案
+后端方面，我基于Spring Boot搭建RESTful服务，设计并实现了用户管理、图像上传与存储、检测结果查询、历史记录管理等核心API。数据库采用MySQL，我设计了用户表、图像记录表、检测结果表的关系模型，对高频查询字段建立了复合索引优化查询性能。
+
+前端方面，我使用Vue.js构建管理界面，实现了图像上传交互、检测结果可视化展示（标注框加类别标签加置信度）、历史检测记录的筛选与导出等功能。
+
+AI模型方面，我集成了自训练的物体检测模型，针对病虫害目标尺度变化大的特点进行了锚框策略调整和数据增强，在自有数据集上达到可用的检测精度。模型通过Python脚本部署，后端通过HTTP调用推理服务。
+
+## 项目亮点
+作为唯一开发者，我独立完成了从需求分析、系统设计、前后端开发、模型集成到部署上线的全流程。这个项目锻炼了我的端到端交付能力。系统已经交付合作公司试用。
+
+## 如果面试官追问：这个项目中最大的技术挑战是什么？
+最大的挑战是模型部署与后端服务的衔接。检测模型是Python环境训练的，但后端是Java的Spring Boot。我通过HTTP接口做了解耦——把模型推理封装成一个独立的Python服务，后端通过HTTP请求调用它，传入图片路径，拿回检测结果JSON。这样两个系统可以独立部署和扩展。
+
+## 如果面试官追问：数据库设计有什么考虑？
+检测结果表需要关联图像记录和用户，我用外键做了关联。对查询频率高的字段（比如用户ID、检测时间）建了复合索引。考虑到图像文件较大，图像本身存储在文件系统而不是数据库中，数据库只存文件路径，这样避免了数据库膨胀。`
+  },
+
+  // MiniCode项目
+  {
+    source: DataSourceType.TEXT,
+    raw_data: `# 项目二：轻量级AI编程Agent
+## 项目概述
+我参考Claude Code类产品的核心工作流，从零实现的一个轻量级、终端优先的AI编程Agent。不依赖LangChain等第三方框架，直接对接Anthropic Messages API，自主实现Agent Loop、工具协议、上下文压缩、权限审批和会话管理等核心模块。
+
+技术栈是TypeScript、Node.js、Anthropic Messages API、MCP Protocol和Ink TUI。
+
+这个项目的目的是深入理解Coding Agent的底层架构设计，是一个可学习、可复现、可工程化的Agent工程实践项目。
+
+## 核心模块一：Agent多步推理循环与容错设计
+我实现了基于ReAct范式的Agent主循环，在agent-loop.ts文件中。循环的核心是Thought到Action到Observation的多步推理链路。
+
+容错方面我设计了多级机制：空响应自动重试，上限2次；thinking阶段中断恢复，上限3次，能区分max_tokens和pause_turn两种中断类型；工具执行错误时，错误信息回注上下文让模型自主纠错；还有maxSteps硬终止防止无限循环。每次迭代前根据上下文利用率动态触发压缩策略。
+
+## 核心模块二：声明式工具注册与MCP动态扩展
+我构建了自研的ToolRegistry工具注册框架。12个内置工具覆盖文件操作、命令执行、网络访问、用户交互和技能加载，它们通过统一的ToolDefinition接口注册，包含名称、描述、参数Schema和执行函数。工具执行结果统一为ok和output结构，失败信息自动回流上下文。
+
+在此基础上我集成了MCP协议，支持stdio和Streamable HTTP双传输模式，实现协议自动检测与缓存，让Agent能动态接入外部工具服务生态。
+
+## 核心模块三：三层校验与权限审批
+我设计了参数校验、权限审批、业务规则三层前置校验链。
+
+权限系统覆盖三个维度：路径权限——cwd外访问需审批；命令权限——自动识别git reset --hard、git push --force、npm publish、任意代码执行等危险命令；编辑权限——文件修改前展示diff预览。
+
+每个维度支持allow_once、allow_always、deny_once、deny_always四种粒度。deny规则始终优先于allow。审批结果按持久化级别分别存储在会话内存、turn级缓存或磁盘配置中。
+
+## 核心模块四：四级递进式上下文压缩
+我设计了从低成本到高成本的四级策略。micro-compact零LLM调用，直接清空旧工具结果内容。context-collapse让LLM生成摘要替换历史消息段，采用非破坏性投影，完整transcript始终保留。snip-compact确定性删除中段非关键消息，保护编辑操作和错误上下文附近内容不被误删。auto-compact用LLM全文摘要兜底。
+
+配合混合token记账——provider上报用量加上角色感知字符比率估算tail消息——通过四级告警normal、warning、critical、blocked驱动压缩触发。auto-compact连续失败后自动禁用，避免API资源浪费。
+
+## 核心模块五：会话持久化与状态分层
+基于append-only JSONL格式实现会话持久化，在session.ts文件中。通过parentUuid链式结构维护事件顺序，支持会话恢复、分叉和过期清理。
+
+记忆分层策略是：工具执行结果用完即焚，对话消息会话内保留，权限决策和MCP协议缓存跨会话持久化。超大工具输出超过50K字符时自动持久化到磁盘，模型上下文只看到摘要和文件路径引用。
+
+## 为什么不用LangChain？
+三个原因。第一,用框架就看不到内部实现。第二,生产可控性。第三是依赖最小化——核心依赖只有Anthropic SDK和Ink，不存在框架版本兼容问题。但我熟悉LangChain，在业务项目中如果目标是快速验证方案，用框架是合理选择。
+
+## 怎么收集项目代码上下文的？
+不依赖RAG，靠两类机制。第一是结构化指令文件被动加载——memory.ts从文件系统根目录扫描到cwd，查找MINI.md等指令文件注入system prompt。第二是工具驱动主动探索——Agent用list_files探索目录结构、grep_files定位代码位置、read_file读取具体文件、run_command执行shell命令获取项目信息。这是Agent自主驱动的渐进式代码探索，不是先检索再生成的RAG范式。`
+  },
+
+  // CraftAgents项目
+  {
+    source: DataSourceType.TEXT,
+    raw_data: `# 项目三：Craft Agents — 高阶Agent架构与多端工程化平台
+## 项目概述
+Craft Agents是面向知识工作者的Agent Native桌面平台。它支持多LLM Provider（Claude、GPT-4o、Gemini、Copilot）、MCP工具协议、多会话并行编排和事件驱动自动化。基于自研双后端架构和WebSocket RPC协议，实现从桌面端到远程无头服务器的统一Agent体验。
+
+技术栈是TypeScript、Bun、Electron、WebSocket、JSONL和MCP。
+
+## 核心设计一：双后端Agent抽象层
+多LLM Provider的SDK架构根本不同——Claude SDK是进程内调用，Pi SDK是子进程JSONL通信。为了解决这个异构问题，我设计了BaseAgent抽象类加AgentBackend接口，通过ClaudeEventAdapter和PiEventAdapter将两种SDK的异构事件流统一为18种AgentEvent类型。这样UI层完全不需要关心底层是哪个Provider，新增Provider只需实现一个EventAdapter和一组抽象方法。
+
+## 核心设计二：6步PreToolUse工具安全管线
+Agent工具调用可能带来越权操作、参数注入、副作用不可控的问题。我设计了6步有序拦截管线：权限模式检查、Source激活、前置条件验证、call_llm拦截、参数变换与校验、Ask模式审批。
+
+其中Bash命令通过AST分析器区分只读和写入操作，配置文件写入前模拟Edit替换结果预验证JSON格式，环境变量过滤阻止API Key泄露给子进程。这个管线有1244行测试覆盖，pipeline顺序经过严格验证。
+
+## 核心设计三：MCP Pool集中式工具代理与级联容错
+异构外部工具需要统一管理。我设计了McpClientPool集中式连接管理器，所有后端共享同一组MCP客户端连接，通过mcp加slug加toolName的代理命名实现运行时Source切换无需重启会话。
+
+Web Search实现了四级Provider级联回退：OpenAI回退到Gemini回退到ChatGPT回退到DuckDuckGo，DuckDuckGo内部还有三级端点降级加指数退避重试。超大工具返回通过模型感知token阈值自动保存到文件加mini model摘要，防止上下文窗口中毒。
+
+## 核心设计四：Session隔离加DAG编排的多Agent协作
+复杂任务超出单Agent上下文窗口和能力范围时怎么办？我设计了Session隔离加TaskRunner DAG编排模式。每个DAG节点自动成为独立子会话，拥有独立的上下文窗口、权限模式和Source集合。Conductor支持max_parallel默认4的并发调度，通过节点输出插值传递前置节点结果。所有节点完成后由Orchestrator会话进行LLM-as-judge审查，失败时带上下文重试，有max_iterations预算封顶。
+
+## 核心设计五：WebSocket RPC双模式部署
+桌面应用需要同时支持本地嵌入和远程无头两种部署模式。我设计了WebSocket RPC协议，实现per-client单调序列号的可靠交付、断线重连事件回放、客户端能力协商、可选TLS加bearer token认证。同一套代码既在Electron主进程中作为本地服务运行，也在Docker或VPS上作为独立服务器运行。
+
+## 你觉得Agent系统最重要的工程能力是什么？
+安全和可控。Agent有自主决策能力，这既是优势也是风险。安全管线、多层权限控制、审计日志，都是为了让Agent在做错事的时候能被拦截和回滚。一个不可控的Agent比没有Agent更危险。`
+  }
+];
+
+async function importKnowledge() {
+  try {
+    console.log('开始导入知识库文档...\n');
+
+    const chunkConfig: ChunkConfig = {
+      separator: "\n\n",
+      max_tokens: 2000,
+      remove_extra_spaces: false,
+      remove_urls_emails: false
+    };
+
+    const response = await client.addDocuments(
+      documents,
+      "coze_doc_knowledge",
+      chunkConfig
+    );
+
+    if (response.code === 0) {
+      console.log(`✅ 成功导入 ${response.doc_ids?.length} 个文档`);
+      console.log(`文档IDs: ${response.doc_ids?.join(', ')}`);
+    } else {
+      console.error(`❌ 导入失败: ${response.msg}`);
+    }
+  } catch (error) {
+    console.error('导入过程发生错误:', error);
+  }
+}
+
+// 执行导入
+importKnowledge();
