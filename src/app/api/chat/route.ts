@@ -80,18 +80,49 @@ export async function POST(request: NextRequest) {
     let detectedImages: string[] = [];
     
     try {
-      const searchResponse = await knowledgeClient.search(message, undefined, 5, 0.3);
+      const searchResponse = await knowledgeClient.search(message, ["coze_doc_knowledge"], 10, 0.05);
       
       if (searchResponse.code === 0 && searchResponse.chunks.length > 0) {
+        const allChunks = [...searchResponse.chunks];
+        
+        // 检查已有的chunk中是否有提到图片/照片的描述，如果有，额外补充搜索含图片的chunk
+        const mentionsImage = allChunks.some(chunk => 
+          /(图片|照片|健身|篮球|骑行)/.test(chunk.content)
+        );
+        
+        if (mentionsImage && allChunks.every(chunk => !/\[!\[.*?\]\(https?:\/\/.+?\)/.test(chunk.content))) {
+          // 用"健身图片"作为查询词再搜索一次，专门找含图片的chunk
+          try {
+            const imageSearch = await knowledgeClient.search(
+              "健身照片图片", 
+              ["coze_doc_knowledge"], 
+              5, 
+              0.0
+            );
+            if (imageSearch.code === 0 && imageSearch.chunks.length > 0) {
+              const imageChunks = imageSearch.chunks.filter(c => 
+                /!\[.*?\]\(https?:\/\/.+?\)/.test(c.content)
+              );
+              // 把含图片的chunk追加到列表中
+              for (const imgChunk of imageChunks) {
+                if (!allChunks.find(c => c.content === imgChunk.content)) {
+                  allChunks.push(imgChunk);
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Image chunk search error:", e);
+          }
+        }
         // 构建知识库上下文
-        const relevantInfo = searchResponse.chunks
+        const relevantInfo = allChunks
           .map((chunk, index) => `[知识库${index + 1}](相似度:${chunk.score.toFixed(2)}):\n${chunk.content}`)
           .join("\n\n---\n\n");
         
         knowledgeContext = `\n\n# 相关知识库信息（请严格基于这些真实信息回答）\n${relevantInfo}`;
         
         // 检测图片链接
-        searchResponse.chunks.forEach(chunk => {
+        allChunks.forEach(chunk => {
           const images = detectImageLinks(chunk.content);
           detectedImages = detectedImages.concat(images);
         });

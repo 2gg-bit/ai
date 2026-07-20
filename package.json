@@ -81,6 +81,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "mammoth": "^1.12.0",
     "only-allow": "^1.2.2",
     "react-dev-inspector": "^2.0.1",
     "shadcn": "latest",
