@@ -83,7 +83,23 @@ export async function POST(request: NextRequest) {
       const searchResponse = await knowledgeClient.search(message, ["coze_doc_knowledge"], 10, 0.05);
       
       if (searchResponse.code === 0 && searchResponse.chunks.length > 0) {
-        const allChunks = [...searchResponse.chunks];
+        // 对搜索结果去重：内容相同或高度相似的chunk只保留得分最高的一个
+        const uniqueChunks: typeof searchResponse.chunks = [];
+        const seenContents = new Set<string>();
+        
+        // 按得分从高到低排序，优先保留得分高的
+        const sortedChunks = [...searchResponse.chunks].sort((a, b) => b.score - a.score);
+        
+        for (const chunk of sortedChunks) {
+          // 取内容的前80个字符作为去重key（去掉前后空白和markdown符号）
+          const normContent = chunk.content.replace(/\s+/g, '').replace(/[#*\-!]/g, '').substring(0, 80);
+          if (!seenContents.has(normContent)) {
+            seenContents.add(normContent);
+            uniqueChunks.push(chunk);
+          }
+        }
+        
+        const allChunks = uniqueChunks;
         
         // 检查已有的chunk中是否有提到图片/照片的描述，如果有，额外补充搜索含图片的chunk
         const mentionsImage = allChunks.some(chunk => 
@@ -121,10 +137,19 @@ export async function POST(request: NextRequest) {
         
         knowledgeContext = `\n\n# 相关知识库信息（请严格基于这些真实信息回答）\n${relevantInfo}`;
         
-        // 检测图片链接
+        // 检测图片链接并去重（同一主题只保留一张，优先取得分高的）
+        const seenImageTopics = new Set<string>();
         allChunks.forEach(chunk => {
           const images = detectImageLinks(chunk.content);
-          detectedImages = detectedImages.concat(images);
+          for (const img of images) {
+            // 从alt文本提取主题关键词（健身、篮球等）
+            const topicMatch = img.match(/!\[([^\]]*)\]/);
+            const topic = topicMatch ? topicMatch[1].replace(/图片|照片/g, '').trim() : img.substring(0, 20);
+            if (!seenImageTopics.has(topic)) {
+              seenImageTopics.add(topic);
+              detectedImages.push(img);
+            }
+          }
         });
       }
     } catch (error) {
