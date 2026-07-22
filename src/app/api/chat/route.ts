@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { LLMClient, Config, HeaderUtils } from "coze-coding-dev-sdk";
+import { Config, HeaderUtils } from "coze-coding-dev-sdk";
 import { KnowledgeClient } from "coze-coding-dev-sdk";
+import OpenAI from "openai";
 
 // 司书晗的人设Prompt - 数字分身系统提示词
 const SYSTEM_PROMPT = `# 角色设定
@@ -44,8 +45,13 @@ const SYSTEM_PROMPT = `# 角色设定
 
 // 初始化客户端
 const config = new Config();
-const llmClient = new LLMClient(config);
 const knowledgeClient = new KnowledgeClient(config);
+
+// 硅基流动 OpenAI 兼容客户端
+const siliconFlowClient = new OpenAI({
+  apiKey: process.env.SILICONFLOW_API_KEY || "sk-fwqaylgnlisgwhuyxnuwuddwsjvmfztlxuctgjriijqzmisv",
+  baseURL: "https://api.siliconflow.cn/v1",
+});
 
 // 检测图片链接
 function detectImageLinks(text: string): string[] {
@@ -71,9 +77,6 @@ export async function POST(request: NextRequest) {
 
     // 提取并转发请求头
     const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-
-    // 初始化客户端（customHeaders在初始化时传递）
-    const llmClient = new LLMClient(config, customHeaders);
 
     // 搜索知识库
     let knowledgeContext = "";
@@ -189,17 +192,19 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // 使用流式输出
-          const llmStream = llmClient.stream(messages, {
-            model: "doubao-seed-1-8-251228",
+          // 使用硅基流动流式输出
+          const llmStream = await siliconFlowClient.chat.completions.create({
+            model: process.env.SILICONFLOW_MODEL || "Qwen/Qwen2.5-72B-Instruct",
+            messages: messages,
+            stream: true,
             temperature: 0.7,
           });
 
           let fullResponse = "";
           
           for await (const chunk of llmStream) {
-            if (chunk.content) {
-              const text = chunk.content.toString();
+            const text = chunk.choices[0]?.delta?.content || "";
+            if (text) {
               fullResponse += text;
               
               const data = JSON.stringify({ content: text });
