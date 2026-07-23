@@ -1,0 +1,6 @@
+{
+  "framework": "nextjs",
+  "nodeVersion": "20.x",
+  "buildCommand": "bash ./scripts/build.sh",
+  "installCommand": "pnpm install"
+}
