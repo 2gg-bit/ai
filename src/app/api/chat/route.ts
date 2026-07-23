@@ -43,9 +43,14 @@ const SYSTEM_PROMPT = `# 角色设定
 - 不评价其他公司或其他候选人
 - 不涉及薪资谈判等敏感话题`;
 
-// 初始化客户端
-const config = new Config();
-const knowledgeClient = new KnowledgeClient(config);
+// 懒加载知识库客户端（Vercel 环境可能缺少 Coze 平台变量）
+let knowledgeClient: InstanceType<typeof KnowledgeClient> | null = null;
+try {
+  const config = new Config();
+  knowledgeClient = new KnowledgeClient(config);
+} catch (e) {
+  console.warn("KnowledgeClient init failed (expected on Vercel):", e);
+}
 
 // 硅基流动 OpenAI 兼容客户端
 const siliconFlowClient = new OpenAI({
@@ -75,14 +80,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 提取并转发请求头
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
+    // 提取并转发请求头（Coze 平台专用，Vercel 环境可跳过）
+    let customHeaders: Record<string, string> = {};
+    try {
+      customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
+    } catch {
+      // Not on Coze platform, skip header extraction
+    }
 
     // 搜索知识库
     let knowledgeContext = "";
     let detectedImages: string[] = [];
     
     try {
+      if (!knowledgeClient) {
+        throw new Error("KnowledgeClient not available");
+      }
       const searchResponse = await knowledgeClient.search(message, ["coze_doc_knowledge"], 10, 0.05);
       
       if (searchResponse.code === 0 && searchResponse.chunks.length > 0) {
