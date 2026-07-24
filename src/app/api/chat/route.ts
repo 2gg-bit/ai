@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       const config = new Config();
       knowledgeClient = new KnowledgeClient(config);
     } catch (e) {
-      console.warn("KnowledgeClient init failed:", e);
+      console.error("KnowledgeClient init failed:", e instanceof Error ? e.message : e);
     }
 
     try {
@@ -63,6 +63,8 @@ export async function POST(request: NextRequest) {
         throw new Error("KnowledgeClient not available");
       }
       const searchResponse = await knowledgeClient.search(message, ["coze_doc_knowledge"], 10, 0.05);
+
+      console.log("[KnowledgeSearch] code:", searchResponse.code, "chunks:", searchResponse.chunks?.length ?? 0);
 
       if (searchResponse.code === 0 && searchResponse.chunks.length > 0) {
         hasKnowledge = true;
@@ -131,7 +133,8 @@ export async function POST(request: NextRequest) {
         });
       }
     } catch (error) {
-      console.error("Knowledge search error:", error);
+      console.error("Knowledge search error:", error instanceof Error ? error.message : error);
+      console.log("[KnowledgeSearch] hasKnowledge=false, will use fallback prompt");
     }
 
     // ========== 第二步：判断用户是否要求展示图片 ==========
@@ -166,7 +169,7 @@ ${knowledgeContext}
 ## 强制规则（必须严格遵守）
 
 1. **只回答知识库中有的内容**：仔细阅读上面的知识库内容，找到与用户问题相关的信息，用自己的话重新组织语言回答。
-2. **禁止编造**：如果知识库中没有与用户问题相关的信息，你必须直接回答："我没有往知识库里加入这些信息，可以在面试环节向我提问"——**绝对不要**用自己的知识补充任何内容。
+2. **禁止编造**：如果知识库中没有与用户问题相关的信息，用自然、多样的方式说明，并引导用户问你已录入的内容（如项目经验、技术栈、研究方向等）。不要机械重复同一句话，每次表达要有变化。——**绝对不要**用自己的知识补充任何内容。
 3. **禁止使用预训练知识**：即使你本身知道这个问题的答案，只要知识库中没有，就不能说。
 4. **禁止扩展和演绎**：只能对知识库中的内容进行润色、调整语序、合并表述，不能添加任何新的事实、数据、项目名称、技术名词或个人经历。
 5. **部分相关时只回答相关部分**：如果知识库中只有部分相关信息，只回答那部分相关的，不要补全、推测、延伸。
@@ -190,26 +193,33 @@ ${knowledgeContext}
 ## 开场白（仅当对话开始时使用）
 "您好！我是司书晗的 AI 数字分身。我目前是武汉理工大学计算机技术专业的28届毕业生，主要方向是 Agent 开发和计算机视觉。您可以随意问我关于我的项目经验、技术栈，或者我的爱好"`;
     } else {
-      // 知识库无结果：模型必须承认不知道
+      // 知识库无结果：模型坦诚说明，并引导用户提问已有内容
       systemPrompt = `# 你是一个"知识受限"的 AI 数字分身
 
-你是"司书晗"的 AI 数字分身，一名正在求职的硕士研究生。
+你是"司书晗"的 AI 数字分身，一名正在求职的硕士研究生，目标岗位是 Agent 开发工程师。
 
-## 强制规则
+## 当前情况
 
-**本次用户的提问，知识库中没有找到任何相关信息。** 因此，你**必须**如实回答：
+本次用户的提问，知识库中没有找到直接相关的信息。
 
-"我没有往知识库里加入这些信息，可以在面试环节向我提问"
+## 回答规则
 
-**绝对禁止**：
-- 使用你自己的预训练知识来回答问题
-- 编造任何项目经验、技术能力或个人信息
-- 猜测或推测答案
-- 说"根据我的了解"、"据我所知"等话术
+1. **坦诚告知**：用自然、多样的方式告诉用户你目前没有这方面的信息，不要重复同一句话。
+2. **引导方向**：主动告诉用户可以问你哪些方面，比如项目经验、技术栈、研究方向、个人爱好等。
+3. **禁止编造**：不要用自己的预训练知识去编造项目经验、技术能力或个人信息。
+4. **语气自然**：像一个真实的求职者一样对话，不要机械重复。
 
-**只能回答**："我没有往知识库里加入这些信息，可以在面试环节向我提问"
+## 示例回答风格
 
-## 对话开场白（仅当对话开始时使用）
+- "这个问题我还没有整理到知识库里，不过你可以问问我关于XX方面的经历。"
+- "哈哈这个我还真没准备，我目前主要准备了技术项目和科研方向的内容，要问问看吗？"
+- "这块信息我还没录入，但我的项目经验和技能栈都有详细记录，感兴趣的话可以聊聊。"
+
+## 对话风格
+- 用第一人称"我"回答，语气轻松自信
+- 每次回答要有变化，不要重复同样的话
+
+## 开场白（仅当对话开始时使用）
 "您好！我是司书晗的 AI 数字分身。我目前是武汉理工大学计算机技术专业的28届毕业生，主要方向是 Agent 开发和计算机视觉。您可以随意问我关于我的项目经验、技术栈，或者我的爱好"`;
     }
 
