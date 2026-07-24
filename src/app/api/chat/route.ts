@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
-import { Config, HeaderUtils } from "coze-coding-dev-sdk";
+import { Config, HeaderUtils, LLMClient } from "coze-coding-dev-sdk";
 import { KnowledgeClient } from "coze-coding-dev-sdk";
-import OpenAI from "openai";
 
 // 司书晗的人设Prompt - 数字分身系统提示词
 const SYSTEM_PROMPT = `# 角色设定
@@ -43,20 +42,16 @@ const SYSTEM_PROMPT = `# 角色设定
 - 不评价其他公司或其他候选人
 - 不涉及薪资谈判等敏感话题`;
 
-// 懒加载知识库客户端（Vercel 环境可能缺少 Coze 平台变量）
+// 懒加载客户端（Vercel 环境可能缺少 Coze 平台变量）
 let knowledgeClient: InstanceType<typeof KnowledgeClient> | null = null;
+let llmClient: InstanceType<typeof LLMClient> | null = null;
 try {
   const config = new Config();
   knowledgeClient = new KnowledgeClient(config);
+  llmClient = new LLMClient(config);
 } catch (e) {
-  console.warn("KnowledgeClient init failed (expected on Vercel):", e);
+  console.warn("Client init failed (expected on Vercel):", e);
 }
-
-// 硅基流动 OpenAI 兼容客户端
-const siliconFlowClient = new OpenAI({
-  apiKey: process.env.SILICONFLOW_API_KEY || "sk-fwqaylgnlisgwhuyxnuwuddwsjvmfztlxuctgjriijqzmisv",
-  baseURL: "https://api.siliconflow.cn/v1",
-});
 
 // 检测图片链接
 function detectImageLinks(text: string): string[] {
@@ -205,9 +200,9 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // 使用硅基流动流式输出
-          const llmStream = await siliconFlowClient.chat.completions.create({
-            model: process.env.SILICONFLOW_MODEL || "Qwen/Qwen2.5-72B-Instruct",
+          // 使用豆包流式输出
+          const llmStream = await llmClient!.chat.completions.create({
+            model: "doubao-seed-1-8-251228",
             messages: messages,
             stream: true,
             temperature: 0.7,
