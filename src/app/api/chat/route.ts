@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
-import { Config, HeaderUtils } from "coze-coding-dev-sdk";
-import { KnowledgeClient } from "coze-coding-dev-sdk";
 import OpenAI from "openai";
+import { searchKnowledge } from "@/lib/knowledge-search";
 
 // 检测图片链接
 function detectImageLinks(text: string): string[] {
@@ -25,31 +24,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 提取并转发请求头（Coze 平台专用，Vercel 环境可跳过）
-    let customHeaders: Record<string, string> = {};
-    try {
-      customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    } catch {
-      // Not on Coze platform, skip header extraction
-    }
-
-    // ========== 初始化客户端 ==========
-    let knowledgeClient: KnowledgeClient | null = null;
+    // ========== 初始化 LLM 客户端 ==========
     let siliconFlowClient: OpenAI | null = null;
-    try {
-      const config = new Config();
-      knowledgeClient = new KnowledgeClient(config);
-    } catch (e) {
-      console.error("KnowledgeClient init failed:", e instanceof Error ? e.message : e);
-    }
-
     try {
       siliconFlowClient = new OpenAI({
         apiKey: process.env.SILICONFLOW_API_KEY || "sk-fwqaylgnlisgwhuyxnuwuddwsjvmfztlxuctgjriijqzmisv",
         baseURL: "https://api.siliconflow.cn/v1",
       });
     } catch (e) {
-      console.warn("SiliconFlow client init failed:", e);
+      console.error("SiliconFlow client init failed:", e instanceof Error ? e.message : e);
     }
 
     // ========== 第一步：搜索知识库（回答的唯一依据） ==========
@@ -57,80 +40,45 @@ export async function POST(request: NextRequest) {
     let detectedImages: string[] = [];
     let hasKnowledge = false;
 
-    // 搜索知识库
     try {
-      if (!knowledgeClient) {
-        throw new Error("KnowledgeClient not available");
-      }
-      const searchResponse = await knowledgeClient.search(message, ["coze_doc_knowledge"], 10, 0.05);
+      const results = await searchKnowledge(message, 5, 0.2);
 
-      console.log("[KnowledgeSearch] code:", searchResponse.code, "chunks:", searchResponse.chunks?.length ?? 0);
+      console.log(`[KnowledgeSearch] query="${message}", results=${results.length}`);
 
-      if (searchResponse.code === 0 && searchResponse.chunks.length > 0) {
+      if (results.length > 0) {
         hasKnowledge = true;
 
         // 对搜索结果去重
-        const uniqueChunks: typeof searchResponse.chunks = [];
         const seenContents = new Set<string>();
-        const sortedChunks = [...searchResponse.chunks].sort((a, b) => b.score - a.score);
-
-        for (const chunk of sortedChunks) {
-          const normContent = chunk.content.replace(/\s+/g, '').replace(/[#*\-!]/g, '').substring(0, 80);
-          if (!seenContents.has(normContent)) {
-            seenContents.add(normContent);
-            uniqueChunks.push(chunk);
-          }
-        }
-
-        const allChunks = uniqueChunks;
-
-        // 检测图片相关描述，补充搜索含图片的chunk
-        const mentionsImage = allChunks.some(chunk => 
-          /(图片|照片|健身|篮球|骑行)/.test(chunk.content)
-        );
-        if (mentionsImage && allChunks.every(chunk => !/\[!\[.*?\]\(https?:\/\/.+?\)/.test(chunk.content))) {
-          try {
-            const imageSearch = await knowledgeClient.search(
-              "健身照片图片", 
-              ["coze_doc_knowledge"], 
-              5, 
-              0.0
-            );
-            if (imageSearch.code === 0 && imageSearch.chunks.length > 0) {
-              const imageChunks = imageSearch.chunks.filter(c => 
-                /!\[.*?\]\(https?:\/\/.+?\)/.test(c.content)
-              );
-              for (const imgChunk of imageChunks) {
-                if (!allChunks.find(c => c.content === imgChunk.content)) {
-                  allChunks.push(imgChunk);
-                }
-              }
-            }
-          } catch (e) {
-            console.error("Image chunk search error:", e);
-          }
-        }
+        const uniqueResults = results.filter((r) => {
+          const norm = r.content.replace(/\s+/g, "").replace(/[#*\-!]/g, "").substring(0, 80);
+          if (seenContents.has(norm)) return false;
+          seenContents.add(norm);
+          return true;
+        });
 
         // 构建知识库上下文
-        const relevantInfo = allChunks
-          .map((chunk, index) => `[知识片段${index + 1}](相似度:${chunk.score.toFixed(2)}):\n${chunk.content}`)
+        knowledgeContext = uniqueResults
+          .map((r, i) => `[知识片段${i + 1}](相似度:${r.score.toFixed(2)}，来源:${r.docTitle}):\n${r.content}`)
           .join("\n\n---\n\n");
-
-        knowledgeContext = relevantInfo;
 
         // 检测图片链接并去重
         const seenImageTopics = new Set<string>();
-        allChunks.forEach(chunk => {
-          const images = detectImageLinks(chunk.content);
+        uniqueResults.forEach((r) => {
+          const images = detectImageLinks(r.content);
           for (const img of images) {
             const topicMatch = img.match(/!\[([^\]]*)\]/);
-            const topic = topicMatch ? topicMatch[1].replace(/图片|照片/g, '').trim() : img.substring(0, 20);
+            const topic = topicMatch ? topicMatch[1].replace(/图片|照片/g, "").trim() : img.substring(0, 20);
             if (!seenImageTopics.has(topic)) {
               seenImageTopics.add(topic);
               detectedImages.push(img);
             }
           }
         });
+
+        console.log(`[KnowledgeSearch] hasKnowledge=true, chunks=${uniqueResults.length}`);
+      } else {
+        console.log("[KnowledgeSearch] hasKnowledge=false, will use fallback prompt");
       }
     } catch (error) {
       console.error("Knowledge search error:", error instanceof Error ? error.message : error);
@@ -139,18 +87,17 @@ export async function POST(request: NextRequest) {
 
     // ========== 第二步：判断用户是否要求展示图片 ==========
     const imageRequestKeywords = ["想看", "展示一下", "好的", "看看", "发出来", "给我看", "可以", "行"];
-    const lastAssistantMessage = history.length > 0 
-      ? [...history].reverse().find((m: { role: string; content: string }) => m.role === "assistant") 
+    const lastAssistantMessage = history.length > 0
+      ? [...history].reverse().find((m: { role: string; content: string }) => m.role === "assistant")
       : null;
-    const assistantAskedAboutImage = lastAssistantMessage?.content && 
-      (lastAssistantMessage.content.includes("想看吗") || 
+    const assistantAskedAboutImage = lastAssistantMessage?.content &&
+      (lastAssistantMessage.content.includes("想看吗") ||
        lastAssistantMessage.content.includes("查看") ||
        lastAssistantMessage.content.includes("照片") ||
        lastAssistantMessage.content.includes("图片"));
     const userWantsImage = imageRequestKeywords.some(kw => message.includes(kw)) && assistantAskedAboutImage;
 
     // ========== 第三步：构建系统提示 ==========
-    // 知识库内容作为系统提示的唯一核心，模型只能基于此回答
     let systemPrompt: string;
 
     if (hasKnowledge) {
@@ -193,7 +140,6 @@ ${knowledgeContext}
 ## 开场白（仅当对话开始时使用）
 "您好！我是司书晗的 AI 数字分身。我目前是武汉理工大学计算机技术专业的28届毕业生，主要方向是 Agent 开发和计算机视觉。您可以随意问我关于我的项目经验、技术栈，或者我的爱好"`;
     } else {
-      // 知识库无结果：模型坦诚说明，并引导用户提问已有内容
       systemPrompt = `# 你是一个"知识受限"的 AI 数字分身
 
 你是"司书晗"的 AI 数字分身，一名正在求职的硕士研究生，目标岗位是 Agent 开发工程师。
@@ -241,7 +187,6 @@ ${knowledgeContext}
             throw new Error("LLM client not available");
           }
 
-          // 使用硅基流动流式输出
           const llmStream = await siliconFlowClient.chat.completions.create({
             model: process.env.SILICONFLOW_MODEL || "Qwen/Qwen2.5-72B-Instruct",
             messages: messages,
@@ -260,7 +205,6 @@ ${knowledgeContext}
             }
           }
 
-          // 如果检测到图片且用户明确要求展示，将图片Markdown作为文本内容追加输出
           if (userWantsImage && detectedImages.length > 0) {
             const imageMarkdown = "\n" + detectedImages[0];
             fullResponse += imageMarkdown;
@@ -268,7 +212,6 @@ ${knowledgeContext}
             controller.enqueue(encoder.encode(`data: ${data}\n\n`));
           }
 
-          // 发送结束标记
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
         } catch (error) {
