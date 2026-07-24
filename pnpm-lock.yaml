@@ -98,6 +98,9 @@ importers:
       '@supabase/supabase-js':
         specifier: 2.95.3
         version: 2.95.3
+      '@vercel/analytics':
+        specifier: ^2.0.1
+        version: 2.0.1(next@16.1.1(@babel/core@7.28.6)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -109,7 +112,7 @@ importers:
         version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       coze-coding-dev-sdk:
         specifier: ^0.7.24
-        version: 0.7.24(@aws-sdk/credential-provider-node@3.972.2)(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
+        version: 0.7.24(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -142,7 +145,7 @@ importers:
         version: 0.4.6(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       openai:
         specifier: ^6.48.0
-        version: 6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6)
+        version: 6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6)
       pg:
         specifier: ^8.16.3
         version: 8.17.2
@@ -230,7 +233,7 @@ importers:
         version: 4.1.18
       tsup:
         specifier: ^8.3.5
-        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@1.10.2)
       tsx:
         specifier: ^4.19.2
         version: 4.21.0
@@ -2921,6 +2924,35 @@ packages:
     resolution: {integrity: sha512-lrW200hZdbfRtztbygyaq/6jP6AKE8qQN2KvPcJ+x7wiD038YtnYtZ82IMNJ69GJibV7bwL3y9FgK+5w/pYt6g==}
     cpu: [x64]
     os: [win32]
+
+  '@vercel/analytics@2.0.1':
+    resolution: {integrity: sha512-MTQG6V9qQrt1tsDeF+2Uoo5aPjqbVPys1xvnIftXSJYG2SrwXRHnqEvVoYID7BTruDz4lCd2Z7rM1BdkUehk2g==}
+    peerDependencies:
+      '@remix-run/react': ^2
+      '@sveltejs/kit': ^1 || ^2
+      next: '>= 13'
+      nuxt: '>= 3'
+      react: ^18 || ^19 || ^19.0.0-rc
+      svelte: '>= 4'
+      vue: ^3
+      vue-router: ^4
+    peerDependenciesMeta:
+      '@remix-run/react':
+        optional: true
+      '@sveltejs/kit':
+        optional: true
+      next:
+        optional: true
+      nuxt:
+        optional: true
+      react:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+      vue-router:
+        optional: true
 
   '@webassemblyjs/ast@1.14.1':
     resolution: {integrity: sha512-nuBEDgQfm1ccRp/8bCQrx1frohyufl4JlbMMZ4P1wpeOfDhF6FQkxZJ1b/e+PLwr6X1Nhw6OLme5usuBWYBvuQ==}
@@ -7666,12 +7698,12 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@langchain/core@1.2.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)':
+  '@langchain/core@1.2.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)':
     dependencies:
       '@cfworker/json-schema': 4.1.1
       '@standard-schema/spec': 1.1.0
       js-tiktoken: 1.0.21
-      langsmith: 0.8.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
+      langsmith: 0.8.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
       mustache: 4.2.0
       p-queue: 6.6.2
       zod: 4.3.6
@@ -7682,11 +7714,11 @@ snapshots:
       - openai
       - ws
 
-  '@langchain/openai@1.5.5(@aws-sdk/credential-provider-node@3.972.2)(@langchain/core@1.2.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0))(ws@8.19.0)':
+  '@langchain/openai@1.5.5(@aws-sdk/credential-provider-node@3.972.2)(@langchain/core@1.2.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0))(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)':
     dependencies:
-      '@langchain/core': 1.2.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
+      '@langchain/core': 1.2.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
       js-tiktoken: 1.0.21
-      openai: 6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6)
+      openai: 6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6)
       zod: 4.3.6
     transitivePeerDependencies:
       - '@aws-sdk/credential-provider-node'
@@ -9297,6 +9329,11 @@ snapshots:
   '@unrs/resolver-binding-win32-x64-msvc@1.11.1':
     optional: true
 
+  '@vercel/analytics@2.0.1(next@16.1.1(@babel/core@7.28.6)(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)':
+    optionalDependencies:
+      next: 16.1.1(@babel/core@7.28.6)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react: 19.2.3
+
   '@webassemblyjs/ast@1.14.1':
     dependencies:
       '@webassemblyjs/helper-numbers': 1.13.2
@@ -9809,10 +9846,10 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
-  coze-coding-dev-sdk@0.7.24(@aws-sdk/credential-provider-node@3.972.2)(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0):
+  coze-coding-dev-sdk@0.7.24(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0):
     dependencies:
-      '@langchain/core': 1.2.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
-      '@langchain/openai': 1.5.5(@aws-sdk/credential-provider-node@3.972.2)(@langchain/core@1.2.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0))(ws@8.19.0)
+      '@langchain/core': 1.2.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
+      '@langchain/openai': 1.5.5(@aws-sdk/credential-provider-node@3.972.2)(@langchain/core@1.2.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0))(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)
       '@supabase/supabase-js': 2.95.3
       axios: 1.18.1
       pg: 8.17.2
@@ -10311,7 +10348,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.2(jiti@2.6.1)):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.2(jiti@2.6.1)))(eslint@9.39.2(jiti@2.6.1)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
@@ -10333,7 +10370,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 9.39.2(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.2(jiti@2.6.1))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.2(jiti@2.6.1)))(eslint@9.39.2(jiti@2.6.1))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -11225,11 +11262,11 @@ snapshots:
 
   known-css-properties@0.37.0: {}
 
-  langsmith@0.8.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0):
+  langsmith@0.8.3(openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6))(ws@8.19.0):
     dependencies:
       p-queue: 6.6.2
     optionalDependencies:
-      openai: 6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6)
+      openai: 6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6)
       ws: 8.19.0
 
   language-subtag-registry@0.3.23: {}
@@ -11603,9 +11640,11 @@ snapshots:
       is-docker: 2.2.1
       is-wsl: 2.2.0
 
-  openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(ws@8.19.0)(zod@4.3.6):
+  openai@6.48.0(@aws-sdk/credential-provider-node@3.972.2)(@smithy/hash-node@4.2.8)(@smithy/signature-v4@5.3.8)(ws@8.19.0)(zod@4.3.6):
     optionalDependencies:
       '@aws-sdk/credential-provider-node': 3.972.2
+      '@smithy/hash-node': 4.2.8
+      '@smithy/signature-v4': 5.3.8
       ws: 8.19.0
       zod: 4.3.6
 
@@ -11769,13 +11808,14 @@ snapshots:
 
   possible-typed-array-names@1.1.0: {}
 
-  postcss-load-config@6.0.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0):
+  postcss-load-config@6.0.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(yaml@1.10.2):
     dependencies:
       lilconfig: 3.1.3
     optionalDependencies:
       jiti: 2.6.1
       postcss: 8.5.6
       tsx: 4.21.0
+      yaml: 1.10.2
 
   postcss-resolve-nested-selector@0.1.6: {}
 
@@ -12683,7 +12723,7 @@ snapshots:
 
   tslib@2.8.1: {}
 
-  tsup@8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3):
+  tsup@8.5.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@1.10.2):
     dependencies:
       bundle-require: 5.1.0(esbuild@0.27.3)
       cac: 6.7.14
@@ -12694,7 +12734,7 @@ snapshots:
       fix-dts-default-cjs-exports: 1.0.1
       joycon: 3.1.1
       picocolors: 1.1.1
-      postcss-load-config: 6.0.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)
+      postcss-load-config: 6.0.1(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(yaml@1.10.2)
       resolve-from: 5.0.0
       rollup: 4.59.0
       source-map: 0.7.6
