@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
-import { Config, HeaderUtils, LLMClient } from "coze-coding-dev-sdk";
+import { Config, HeaderUtils } from "coze-coding-dev-sdk";
 import { KnowledgeClient } from "coze-coding-dev-sdk";
+import OpenAI from "openai";
 
 // 检测图片链接
 function detectImageLinks(text: string): string[] {
@@ -32,20 +33,29 @@ export async function POST(request: NextRequest) {
       // Not on Coze platform, skip header extraction
     }
 
+    // ========== 初始化客户端 ==========
+    let knowledgeClient: KnowledgeClient | null = null;
+    let siliconFlowClient: OpenAI | null = null;
+    try {
+      const config = new Config();
+      knowledgeClient = new KnowledgeClient(config);
+    } catch (e) {
+      console.warn("KnowledgeClient init failed:", e);
+    }
+
+    try {
+      siliconFlowClient = new OpenAI({
+        apiKey: process.env.SILICONFLOW_API_KEY || "sk-fwqaylgnlisgwhuyxnuwuddwsjvmfztlxuctgjriijqzmisv",
+        baseURL: "https://api.siliconflow.cn/v1",
+      });
+    } catch (e) {
+      console.warn("SiliconFlow client init failed:", e);
+    }
+
     // ========== 第一步：搜索知识库（回答的唯一依据） ==========
     let knowledgeContext = "";
     let detectedImages: string[] = [];
     let hasKnowledge = false;
-    
-    let knowledgeClient: InstanceType<typeof KnowledgeClient> | null = null;
-    let llmClient: InstanceType<typeof LLMClient> | null = null;
-    try {
-      const config = new Config();
-      knowledgeClient = new KnowledgeClient(config);
-      llmClient = new LLMClient(config);
-    } catch (e) {
-      console.warn("Client init failed:", e);
-    }
 
     // 搜索知识库
     try {
@@ -204,29 +214,35 @@ ${knowledgeContext}
     }
 
     // ========== 第四步：构建消息历史并发起流式调用 ==========
-    const messages = [
-      { role: "system" as const, content: systemPrompt },
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      { role: "system", content: systemPrompt },
       ...history.map((msg: { role: string; content: string }) => ({
-        role: msg.role as "user" | "assistant",
+        role: msg.role as "user" | "assistant" | "system",
         content: msg.content,
       })),
-      { role: "user" as const, content: message },
+      { role: "user", content: message },
     ];
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // 使用豆包流式输出
-          const llmStream = await llmClient!.stream(messages, {
-            model: "doubao-seed-1-8-251228",
-            temperature: 0.3,  // 降低温度，让回答更严谨
+          if (!siliconFlowClient) {
+            throw new Error("LLM client not available");
+          }
+
+          // 使用硅基流动流式输出
+          const llmStream = await siliconFlowClient.chat.completions.create({
+            model: process.env.SILICONFLOW_MODEL || "Qwen/Qwen2.5-72B-Instruct",
+            messages: messages,
+            temperature: 0.3,
+            stream: true,
           });
 
           let fullResponse = "";
 
           for await (const chunk of llmStream) {
-            const text = typeof chunk.content === 'string' ? chunk.content : "";
+            const text = chunk.choices[0]?.delta?.content || "";
             if (text) {
               fullResponse += text;
               const data = JSON.stringify({ content: text });
